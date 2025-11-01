@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum CodiceSlug {
+  costituzione
+  codice_civile
+  codice_penale
+}
+
+model Codice {
+  id        String     @id @default(cuid())
+  slug      CodiceSlug @unique
+  nome      String
+  libri     Libro[]
+  articoli  Articolo[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Libro {
+  id        String  @id @default(cuid())
+  codiceId  String
+  codice    Codice  @relation(fields: [codiceId], references: [id], onDelete: Cascade)
+  ordine    Int
+  label     String
+  slug      String
+  titoli    Titolo[]
+  articoli  Articolo[]
+
+  @@unique([codiceId, slug])
+  @@index([codiceId, ordine])
+}
+
+model Titolo {
+  id       String @id @default(cuid())
+  libroId  String
+  libro    Libro  @relation(fields: [libroId], references: [id], onDelete: Cascade)
+  ordine   Int
+  label    String
+  slug     String
+  capi     Capo[]
+  articoli Articolo[]
+
+  @@unique([libroId, slug])
+  @@index([libroId, ordine])
+}
+
+model Capo {
+  id       String @id @default(cuid())
+  titoloId String
+  titolo   Titolo @relation(fields: [titoloId], references: [id], onDelete: Cascade)
+  ordine   Int
+  label    String
+  slug     String
+  sezioni  Sezione[]
+  articoli Articolo[]
+
+  @@unique([titoloId, slug])
+  @@index([titoloId, ordine])
+}
+
+model Sezione {
+  id      String @id @default(cuid())
+  capoId  String
+  capo    Capo   @relation(fields: [capoId], references: [id], onDelete: Cascade)
+  ordine  Int
+  label   String
+  slug    String
+  articoli Articolo[]
+
+  @@unique([capoId, slug])
+  @@index([capoId, ordine])
+}
+
+model Articolo {
+  id         String  @id @default(cuid())
+  codiceId   String
+  codice     Codice  @relation(fields: [codiceId], references: [id], onDelete: Cascade)
+
+  libroId    String?
+  libro      Libro?  @relation(fields: [libroId], references: [id], onDelete: SetNull)
+  titoloId   String?
+  titolo     Titolo? @relation(fields: [titoloId], references: [id], onDelete: SetNull)
+  capoId     String?
+  capo       Capo?   @relation(fields: [capoId], references: [id], onDelete: SetNull)
+  sezioneId  String?
+  sezione    Sezione?@relation(fields: [sezioneId], references: [id], onDelete: SetNull)
+
+  numero     String
+  rubrica    String?
+  slug       String
+  testo      String
+  commiJson  Json?
+
+  embedding  Json? // ok anche su SQLite (array simulato come JSON)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([codiceId, slug])
+  @@index([codiceId, numero])
+  @@index([rubrica])
+}
